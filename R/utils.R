@@ -1,5 +1,6 @@
 # R/utils.R
-# This script contains helper functions for validating and processing the Seurat object.
+# This script contains helper functions for validating, processing, and analyzing the Seurat object.
+
 
 #' Validate Seurat Object
 #'
@@ -101,4 +102,37 @@ process_seurat_object <- function(obj, progress) {
   }
   
   return(obj)
+}
+
+
+#' Perform Differential Gene Expression
+#'
+#' Runs Seurat's FindMarkers and formats the output.
+#' @param obj The Seurat object.
+#' @param grouping_var The metadata column to group cells by.
+#' @param group1 The first group for comparison (test group).
+#' @param group2 The second group for comparison (control group). Can be "All Other Cells".
+#' @param progress A shiny::Progress object to report progress.
+#' @return A formatted data frame with DGE results.
+perform_dge <- function(obj, grouping_var, group1, group2, progress) {
+  
+  progress$set(value = 0.5, detail = "Running FindMarkers...")
+  
+  # Set the identity of the cells based on the user's selection
+  Idents(obj) <- obj@meta.data[[grouping_var]]
+  
+  # Define the second group (NULL means all other cells)
+  group2_ident <- if (group2 == "All Other Cells") NULL else group2
+  
+  # Run FindMarkers
+  markers <- FindMarkers(obj, ident.1 = group1, ident.2 = group2_ident, verbose = FALSE)
+  
+  progress$set(value = 0.9, detail = "Formatting results...")
+  
+  # Format the results for display
+  markers$gene <- rownames(markers)
+  markers <- markers[, c("gene", "p_val", "avg_log2FC", "pct.1", "pct.2", "p_val_adj")]
+  markers[, -1] <- round(markers[, -1], 4) # Round numeric columns
+  
+  return(markers)
 }
