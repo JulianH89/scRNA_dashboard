@@ -1,4 +1,6 @@
 # app.R
+# Set the maximum file upload size to 500MB
+options(shiny.maxRequestSize = 500*1024^2)
 
 # Load necessary libraries
 # Ensure you have these installed: install.packages(c("shiny", "Seurat", "ggplot2", "shinythemes", "DT", "plotly"))
