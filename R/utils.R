@@ -1,10 +1,10 @@
 # R/utils.R
 # This script contains helper functions for validating and processing the Seurat object.
-# By keeping them here, we can reuse them in other modules and keep our server logic clean.
 
 #' Validate Seurat Object
 #'
-#' Checks if the uploaded object is a valid Seurat object with raw count data.
+#' Checks if the uploaded object is a valid Seurat object with a raw count matrix
+#' in the 'RNA' assay.
 #' @param obj The object to validate.
 #' @return A list containing `is_valid` (boolean) and a `message` (string).
 validate_seurat_object <- function(obj) {
@@ -13,16 +13,16 @@ validate_seurat_object <- function(obj) {
     return(list(is_valid = FALSE, message = "Error: The uploaded file is not a Seurat object."))
   }
   
-  # Check 2: Does it have a default assay?
-  if (length(obj@assays) == 0) {
-      return(list(is_valid = FALSE, message = "Error: The Seurat object does not contain any assays."))
+  # Check 2: Does the 'RNA' assay exist?
+  if (!("RNA" %in% names(obj@assays))) {
+      return(list(is_valid = FALSE, message = "Error: The Seurat object must contain an assay named 'RNA'."))
   }
   
-  # Check 3: Does it have a raw count matrix?
-  if (nrow(obj@assays[[DefaultAssay(obj)]]@counts) == 0) {
+  # Check 3: Does the 'RNA' assay contain a raw count matrix?
+  if (nrow(obj@assays$RNA@counts) == 0) {
     return(list(
       is_valid = FALSE,
-      message = "Error: The Seurat object's default assay does not contain a raw count matrix (`counts` slot is empty)."
+      message = "Error: The 'RNA' assay does not contain a raw count matrix (`obj@assays$RNA@counts` is empty)."
     ))
   }
   
@@ -33,16 +33,18 @@ validate_seurat_object <- function(obj) {
 
 #' Process Seurat Object
 #'
-#' Runs the standard Seurat workflow (Normalize, Scale, PCA, UMAP) if the steps
-#' have not already been completed.
+#' Runs the standard Seurat workflow on the RNA assay if steps have not been completed.
 #' @param obj The Seurat object to process.
 #' @param progress A shiny::Progress object to report progress to the user.
 #' @return A fully processed Seurat object.
 process_seurat_object <- function(obj, progress) {
   
+  # Ensure all subsequent operations are performed on the RNA assay
+  DefaultAssay(obj) <- "RNA"
+  
   # --- Step 1: Normalization ---
   # Check if the data slot is empty, which implies it hasn't been normalized.
-  if (nrow(obj@assays[[DefaultAssay(obj)]]@data) == 0) {
+  if (nrow(obj@assays$RNA@data) == 0) {
     progress$set(value = 0.5, detail = "Normalizing data...")
     showNotification("Raw counts detected. Normalizing data now.", duration = 5)
     obj <- NormalizeData(obj)
