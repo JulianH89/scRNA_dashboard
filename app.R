@@ -10,6 +10,7 @@ library(ggplot2)
 library(shinythemes)
 library(DT)
 library(plotly)
+library(dplyr)
 
 # Source module and utility files
 source("R/utils.R")

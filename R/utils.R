@@ -109,11 +109,7 @@ process_seurat_object <- function(obj, progress) {
 #'
 #' Runs Seurat's FindMarkers and formats the output.
 #' @param obj The Seurat object.
-#' @param grouping_var The metadata column to group cells by.
-#' @param group1 The first group for comparison (test group).
-#' @param group2 The second group for comparison (control group). Can be "All Other Cells".
-#' @param progress A shiny::Progress object to report progress.
-#' @return A formatted data frame with DGE results.
+# ... (function is unchanged) ...
 perform_dge <- function(obj, grouping_var, group1, group2, progress) {
   
   progress$set(value = 0.5, detail = "Running FindMarkers...")
@@ -132,7 +128,54 @@ perform_dge <- function(obj, grouping_var, group1, group2, progress) {
   # Format the results for display
   markers$gene <- rownames(markers)
   markers <- markers[, c("gene", "p_val", "avg_log2FC", "pct.1", "pct.2", "p_val_adj")]
-  markers[, -1] <- round(markers[, -1], 4) # Round numeric columns
+  # Ensure p_val_adj is not zero for log transformation, set to a very small number if it is
+  markers$p_val_adj[markers$p_val_adj == 0] <- .Machine$double.xmin
+  markers[, 2:6] <- round(markers[, 2:6], 4) # Round numeric columns
   
   return(markers)
+}
+
+
+#' Generate an interactive volcano plot
+#'
+#' Creates a volcano plot using plotly from DGE results.
+#' @param dge_results A data frame from perform_dge.
+#' @param fc_threshold Log2 fold-change threshold for significance.
+#' @param pval_threshold Adjusted p-value threshold for significance.
+#' @return A plotly object.
+generate_volcano_plot <- function(dge_results, fc_threshold = 1, pval_threshold = 0.05) {
+  
+  req(dge_results)
+  
+  # Create a column to determine significance for coloring based on user-defined thresholds
+  dge_results <- dge_results %>%
+    mutate(significance = case_when(
+      abs(avg_log2FC) > fc_threshold & p_val_adj < pval_threshold ~ "Significant",
+      TRUE                                                        ~ "Not Significant"
+    ))
+  
+  # Define colors for the plot: red for significant, grey for not
+  colors <- c("Significant" = "#E41A1C", "Not Significant" = "grey")
+  
+  plot_ly(
+    data = dge_results,
+    x = ~avg_log2FC,
+    y = ~-log10(p_val_adj),
+    text = ~paste("Gene:", gene, "<br>log2FC:", round(avg_log2FC, 3), "<br>p.adj:", format.pval(p_val_adj, digits = 3)),
+    hoverinfo = "text",
+    type = 'scatter',
+    mode = 'markers',
+    # Use top-level color/colors arguments for a more robust mapping
+    color = ~factor(significance, levels = c("Significant", "Not Significant")),
+    colors = colors,
+    marker = list(
+      size = 5,
+      opacity = 0.7
+    )
+  ) %>%
+  layout(
+    title = "Volcano Plot",
+    xaxis = list(title = "Average Log2 Fold Change"),
+    yaxis = list(title = "-log10(Adjusted P-value)")
+  )
 }
