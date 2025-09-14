@@ -234,3 +234,26 @@ perform_pathway_analysis <- function(gene_list, ontology, organism_db = "org.Hs.
   
   return(enrich_result)
 }
+
+#' Find top marker genes for a specific cluster/group
+#'
+#' A wrapper for Seurat's FindMarkers function.
+#' @param seurat_obj The Seurat object.
+#' @param group_by_var The metadata column defining the groups (e.g., "seurat_clusters").
+#' @param ident_1 The specific group/cluster to find markers for.
+#' @return A data frame with the top 10 marker genes.
+find_top_markers <- function(seurat_obj, group_by_var, ident_1) {
+  
+  # Set the identity of the cells to the chosen metadata column
+  Idents(seurat_obj) <- group_by_var
+  
+  # Run FindMarkers
+  markers <- FindMarkers(seurat_obj, ident.1 = ident_1, min.pct = 0.25)
+  
+  # Format the results
+  markers %>%
+    tibble::rownames_to_column("gene") %>%
+    arrange(desc(avg_log2FC)) %>%
+    head(10) %>%
+    mutate(across(where(is.numeric), ~round(., 3))) # Round numeric columns
+}

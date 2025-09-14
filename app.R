@@ -17,7 +17,7 @@ source("R/utils.R")
 source("R/01_upload_module.R")
 source("R/02_dge_module.R")
 source("R/03_pathway_module.R")
-# source("R/04_umap_module.R")
+source("R/04_umap_module.R")
 
 # Define the UI
 ui <- navbarPage(
@@ -45,8 +45,7 @@ ui <- navbarPage(
   # Sector 4: UMAP Visualization (Placeholder)
   tabPanel(
     "4. UMAP Visualization",
-    h3("Interactive UMAP Embedding (Coming Soon)")
-    # umap_ui("umap_module")
+    umap_ui("umap_module")
   )
 )
 
@@ -66,6 +65,9 @@ server <- function(input, output, session) {
     dge_results = dge_reactives$results, 
     dge_thresholds = dge_reactives$thresholds
   )
+
+  # UMAP Visualization Module
+  umap_server("umap_module", seurat_data_reactive)
   
 }
 
