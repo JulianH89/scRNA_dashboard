@@ -16,7 +16,7 @@ library(dplyr)
 source("R/utils.R")
 source("R/01_upload_module.R")
 source("R/02_dge_module.R")
-# source("R/03_pathway_module.R")
+source("R/03_pathway_module.R")
 # source("R/04_umap_module.R")
 
 # Define the UI
@@ -39,8 +39,7 @@ ui <- navbarPage(
   # Sector 3: Pathway Enrichment (Placeholder)
   tabPanel(
     "3. Pathway Enrichment",
-    h3("Gene Pathway Enrichment Analysis (Coming Soon)")
-    # pathway_ui("pathway_module")
+    pathway_ui("pathway_module")
   ),
   
   # Sector 4: UMAP Visualization (Placeholder)
@@ -58,11 +57,15 @@ server <- function(input, output, session) {
   # This module returns the reactive Seurat object.
   seurat_data_reactive <- upload_server("upload_module")
   
-  # Call the DGE server module, passing it the reactive Seurat object.
-  dge_server("dge_module", seurat_data_reactive)
+  # DGE Module - it now returns a list of reactives
+  dge_reactives <- dge_server("dge_module", seurat_data_reactive)
   
-  # pathway_server("pathway_module", ...) 
-  # umap_server("umap_module", seurat_data_reactive)
+  # Pathway Enrichment Module - it takes reactives from the DGE module
+  pathway_server(
+    "pathway_module", 
+    dge_results = dge_reactives$results, 
+    dge_thresholds = dge_reactives$thresholds
+  )
   
 }
 

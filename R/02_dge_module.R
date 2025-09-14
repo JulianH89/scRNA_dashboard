@@ -123,5 +123,20 @@ dge_server <- function(id, seurat_data) {
       )
     })
     
+    # --- 4. Return reactive values for other modules to use ---
+    return(
+      list(
+        # The DGE results data frame
+        results = dge_results,
+        # The thresholds from the UI inputs
+        thresholds = reactive({
+          list(
+            pval = input$pval_threshold,
+            fc = input$fc_threshold
+          )
+        })
+      )
+    )
+
   })
 }

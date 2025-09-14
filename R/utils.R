@@ -179,3 +179,58 @@ generate_volcano_plot <- function(dge_results, fc_threshold = 1, pval_threshold 
     yaxis = list(title = "-log10(Adjusted P-value)")
   )
 }
+
+#' Perform Gene Ontology (GO) Pathway Enrichment Analysis
+#'
+#' @param gene_list A character vector of significant gene symbols.
+#' @param ontology The GO ontology to test ("BP", "MF", or "CC").
+#' @param organism_db The annotation database package for the organism (e.g., "org.Hs.eg.db").
+#' @param progress A shiny::Progress object.
+#' @return An 'enrichResult' object from clusterProfiler.
+perform_pathway_analysis <- function(gene_list, ontology, organism_db = "org.Hs.eg.db", progress) {
+  
+  progress$set(value = 0.2, detail = "Converting gene symbols to Entrez IDs...")
+  
+  # Convert gene symbols to Entrez IDs. This is required by clusterProfiler.
+  # We use a tryCatch block in case the org db is not installed
+  entrez_ids <- tryCatch({
+    suppressMessages(
+      AnnotationDbi::mapIds(get(organism_db),
+                            keys = gene_list,
+                            column = "ENTREZID",
+                            keytype = "SYMBOL",
+                            multiVals = "first")
+    )
+  }, error = function(e) {
+    showModal(modalDialog(
+      title = "Annotation DB Not Found",
+      paste("Please make sure the annotation package '", organism_db, "' is installed from Bioconductor."),
+      easyClose = TRUE
+    ))
+    return(NULL)
+  })
+
+  # Remove NA values from the conversion
+  entrez_ids <- entrez_ids[!is.na(entrez_ids)]
+  
+  if (length(entrez_ids) < 5) {
+    return(NULL) # Not enough genes to analyze after conversion
+  }
+  
+  progress$set(value = 0.6, detail = "Running enrichment test...")
+  
+  # Run GO enrichment
+  enrich_result <- clusterProfiler::enrichGO(
+    gene          = entrez_ids,
+    OrgDb         = get(organism_db),
+    keyType       = 'ENTREZID',
+    ont           = ontology,
+    pAdjustMethod = "BH",
+    pvalueCutoff  = 0.05,
+    qvalueCutoff  = 0.10
+  )
+  
+  progress$set(value = 1, detail = "Done!")
+  
+  return(enrich_result)
+}
