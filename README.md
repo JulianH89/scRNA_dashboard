@@ -87,7 +87,7 @@ shiny::runApp()
 
 3. The application will launch in a new window or in your default web browser.
 
-### Using the Test Data
+## Using the Test Data
 
 To test the application's full functionality, you can use the provided test dataset.
 
